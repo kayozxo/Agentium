@@ -6,10 +6,15 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0"
     />
-    <title>AI Agent Hub</title>
+    <title>Agentium</title>
+
     <link
       rel="stylesheet"
       href="styles.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     />
   </head>
   <body>
@@ -109,19 +114,70 @@
 
         <div class="input-section">
           <div class="input-controls">
-            <div class="agent-dropdown">
-              <select
-                class="agent-select"
-                id="agentSelect"
+            <div
+              class="custom-dropdown"
+              id="agentDropdown"
+            >
+              <button
+                class="dropdown-button"
+                id="dropdownButton"
               >
-                <option value="general">💬 General</option>
-                <option value="web">🌐 Web Search</option>
-                <option value="youtube">🎥 YouTube</option>
-                <option value="articles">📰 Articles</option>
-                <option value="linkedin">💼 LinkedIn</option>
-                <option value="finance">💰 Finance</option>
-              </select>
-              <span class="dropdown-arrow">▼</span>
+                <div
+                  class="dropdown-selected"
+                  id="dropdownSelected"
+                >
+                  <i class="bi bi-chat-dots"></i>
+                  <span>General</span>
+                </div>
+                <i class="bi bi-caret-down-fill dropdown-arrow"></i>
+              </button>
+              <div
+                class="dropdown-menu"
+                id="dropdownMenu"
+              >
+                <div
+                  class="dropdown-option selected"
+                  data-value="general"
+                >
+                  <i class="bi bi-chat-dots"></i>
+                  <span>General</span>
+                </div>
+                <div
+                  class="dropdown-option"
+                  data-value="web"
+                >
+                  <i class="bi bi-globe2"></i>
+                  <span>Web Search</span>
+                </div>
+                <div
+                  class="dropdown-option"
+                  data-value="youtube"
+                >
+                  <i class="bi bi-youtube"></i>
+                  <span>YouTube</span>
+                </div>
+                <div
+                  class="dropdown-option"
+                  data-value="articles"
+                >
+                  <i class="bi bi-file-text"></i>
+                  <span>Articles</span>
+                </div>
+                <div
+                  class="dropdown-option"
+                  data-value="linkedin"
+                >
+                  <i class="bi bi-linkedin"></i>
+                  <span>LinkedIn</span>
+                </div>
+                <div
+                  class="dropdown-option"
+                  data-value="finance"
+                >
+                  <i class="bi bi-currency-dollar"></i>
+                  <span>Finance</span>
+                </div>
+              </div>
             </div>
 
             <div class="file-upload-container">
@@ -129,7 +185,7 @@
                 class="file-upload-btn"
                 id="imageUploadBtn"
               >
-                📷 Image
+                <i class="bi bi-image"></i> Image
                 <input
                   type="file"
                   class="file-input"
@@ -142,7 +198,7 @@
                 class="file-upload-btn"
                 id="fileUploadBtn"
               >
-                📁 File
+                <i class="bi bi-file-earmark"></i> File
                 <input
                   type="file"
                   class="file-input"
@@ -170,7 +226,7 @@
               id="sendButton"
               disabled
             >
-              ↑
+              <i class="bi bi-arrow-up"></i>
             </button>
           </div>
         </div>
@@ -178,13 +234,112 @@
     </div>
 
     <script>
-      class ChatApp {
-        startChat() {
-          this.isChatStarted = true
-          if (this.heroSection) this.heroSection.style.display = 'none'
-          if (this.headerTop) this.headerTop.style.display = 'none'
-          if (this.chatContainer) this.chatContainer.style.display = 'block'
+      class CustomDropdown {
+        constructor(element) {
+          this.dropdown = element
+          this.button = element.querySelector('.dropdown-button')
+          this.menu = element.querySelector('.dropdown-menu')
+          this.selected = element.querySelector('.dropdown-selected')
+          this.options = element.querySelectorAll('.dropdown-option')
+          this.isOpen = false
+
+          this.init()
         }
+
+        init() {
+          // Toggle dropdown on button click
+          this.button.addEventListener('click', (e) => {
+            e.stopPropagation()
+            this.toggle()
+          })
+
+          // Handle option selection
+          this.options.forEach((option) => {
+            option.addEventListener('click', (e) => {
+              e.stopPropagation()
+              this.selectOption(option)
+            })
+          })
+
+          // Close dropdown when clicking outside
+          document.addEventListener('click', () => {
+            this.close()
+          })
+
+          // Close dropdown on escape key
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+              this.close()
+            }
+          })
+        }
+
+        toggle() {
+          if (this.isOpen) {
+            this.close()
+          } else {
+            this.open()
+          }
+        }
+
+        open() {
+          this.isOpen = true
+          this.button.classList.add('active')
+          this.menu.classList.add('active')
+        }
+
+        close() {
+          this.isOpen = false
+          this.button.classList.remove('active')
+          this.menu.classList.remove('active')
+        }
+
+        selectOption(option) {
+          // Remove selected class from all options
+          this.options.forEach((opt) => opt.classList.remove('selected'))
+
+          // Add selected class to clicked option
+          option.classList.add('selected')
+
+          // Update the button display
+          const icon = option.querySelector('i').className
+          const text = option.querySelector('span').textContent
+
+          this.selected.innerHTML = `
+            <i class="${icon}"></i>
+            <span>${text}</span>
+          `
+
+          // Close dropdown
+          this.close()
+
+          // Trigger change event
+          const changeEvent = new CustomEvent('change', {
+            detail: {
+              value: option.dataset.value,
+              text: text,
+              icon: icon,
+            },
+          })
+          this.dropdown.dispatchEvent(changeEvent)
+        }
+
+        getValue() {
+          const selectedOption = this.dropdown.querySelector(
+            '.dropdown-option.selected',
+          )
+          return selectedOption ? selectedOption.dataset.value : null
+        }
+
+        setValue(value) {
+          const option = this.dropdown.querySelector(`[data-value="${value}"]`)
+          if (option) {
+            this.selectOption(option)
+          }
+        }
+      }
+
+      class ChatApp {
         constructor() {
           this.currentAgent = 'general'
           this.apiUrl = 'http://localhost:8000'
@@ -194,6 +349,7 @@
           this.isChatStarted = false
 
           this.initializeElements()
+          this.initializeDropdown()
           this.bindEvents()
           this.updatePlaceholder()
         }
@@ -208,8 +364,6 @@
           this.agentTitle = document.getElementById('agentTitle')
           this.agentDescription = document.getElementById('agentDescription')
           this.chatHeaderIcon = document.getElementById('chatHeaderIcon')
-          this.agentSelect = document.getElementById('agentSelect')
-          this.startChatBtn = document.getElementById('startChatBtn')
           this.imageInput = document.getElementById('imageInput')
           this.fileInput = document.getElementById('fileInput')
           this.imageUploadBtn = document.getElementById('imageUploadBtn')
@@ -217,14 +371,17 @@
           this.uploadedFilesContainer = document.getElementById('uploadedFiles')
         }
 
-        bindEvents() {
-          // Start chat
+        initializeDropdown() {
+          const dropdownElement = document.getElementById('agentDropdown')
+          this.agentDropdown = new CustomDropdown(dropdownElement)
 
-          // Agent selection
-          this.agentSelect.addEventListener('change', (e) => {
-            this.selectAgent(e.target.value)
+          // Listen for dropdown changes
+          dropdownElement.addEventListener('change', (e) => {
+            this.selectAgent(e.detail.value)
           })
+        }
 
+        bindEvents() {
           // File uploads
           this.imageUploadBtn.addEventListener('click', () => {
             this.imageInput.click()
@@ -247,7 +404,6 @@
 
           this.messageInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
-              console.log('Enter pressed, sending message')
               e.preventDefault()
               this.sendMessage()
             }
@@ -261,14 +417,26 @@
           })
         }
 
+        startChat() {
+          this.isChatStarted = true
+          if (this.heroSection) this.heroSection.style.display = 'none'
+          if (this.headerTop) this.headerTop.style.display = 'none'
+          if (this.chatContainer) this.chatContainer.style.display = 'block'
+        }
+
         selectAgent(agentType) {
           this.currentAgent = agentType
           const agentInfo = this.getAgentInfo(agentType)
           this.agentTitle.textContent = agentInfo.title
           this.agentDescription.textContent = agentInfo.description
-          this.chatHeaderIcon.textContent = agentInfo.icon
-          this.updatePlaceholder()
 
+          // Clear and add Bootstrap icon
+          this.chatHeaderIcon.innerHTML = ''
+          const icon = document.createElement('i')
+          icon.className = agentInfo.icon
+          this.chatHeaderIcon.appendChild(icon)
+
+          this.updatePlaceholder()
           if (this.isChatStarted) {
             this.clearMessages()
           }
@@ -292,32 +460,32 @@
             general: {
               title: 'General Chat',
               description: 'Ask me anything!',
-              icon: '💬',
+              icon: 'bi bi-chat-dots',
             },
             web: {
               title: 'Web Agent',
               description: 'Search and browse the web',
-              icon: '🌐',
+              icon: 'bi bi-globe2',
             },
             youtube: {
               title: 'YouTube Agent',
               description: 'Find YouTube content',
-              icon: '🎥',
+              icon: 'bi bi-youtube',
             },
             articles: {
               title: 'Articles Agent',
               description: 'Research articles',
-              icon: '📰',
+              icon: 'bi bi-file-text',
             },
             linkedin: {
               title: 'LinkedIn Agent',
               description: 'Professional insights',
-              icon: '💼',
+              icon: 'bi bi-linkedin',
             },
             finance: {
               title: 'Finance Agent',
               description: 'Financial analysis',
-              icon: '💰',
+              icon: 'bi bi-currency-dollar',
             },
           }
           return agentInfoMap[agentType] || agentInfoMap.general
@@ -344,13 +512,13 @@
             const chip = document.createElement('div')
             chip.className = 'file-chip'
             chip.innerHTML = `
-                        <span>${fileObj.type === 'image' ? '📷' : '📁'} ${
-              fileObj.name
-            }</span>
-                        <span class="remove-file" data-id="${
-                          fileObj.id
-                        }">×</span>
-                    `
+              <span>${
+                fileObj.type === 'image'
+                  ? '<i class="bi bi-image"></i>'
+                  : '<i class="bi bi-file-earmark"></i>'
+              } ${fileObj.name}</span>
+              <span class="remove-file" data-id="${fileObj.id}">×</span>
+            `
 
             chip.querySelector('.remove-file').addEventListener('click', () => {
               this.removeFile(fileObj.id)
@@ -532,12 +700,12 @@
           const loadingContent = document.createElement('div')
           loadingContent.className = 'message-content'
           loadingContent.innerHTML = `
-                    <div class="loading">
-                        <div class="loading-dot"></div>
-                        <div class="loading-dot"></div>
-                        <div class="loading-dot"></div>
-                    </div>
-                `
+            <div class="loading">
+              <div class="loading-dot"></div>
+              <div class="loading-dot"></div>
+              <div class="loading-dot"></div>
+            </div>
+          `
 
           loadingDiv.appendChild(avatar)
           loadingDiv.appendChild(loadingContent)
@@ -567,15 +735,11 @@
 
         clearMessages() {
           this.messagesContainer.innerHTML = `
-                    <div class="welcome-message">
-                        <h4>Switched to ${
-                          this.getAgentInfo(this.currentAgent).title
-                        }</h4>
-                        <p>${
-                          this.getAgentInfo(this.currentAgent).description
-                        }</p>
-                    </div>
-                `
+            <div class="welcome-message">
+              <h4>Switched to ${this.getAgentInfo(this.currentAgent).title}</h4>
+              <p>${this.getAgentInfo(this.currentAgent).description}</p>
+            </div>
+          `
         }
 
         scrollToBottom() {
