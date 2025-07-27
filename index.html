@@ -14,7 +14,10 @@
   </head>
   <body>
     <div class="container">
-      <header class="header">
+      <header
+        class="header"
+        id="headerTop"
+      >
         <div class="logo">
           <div class="logo-icon">
             <svg
@@ -179,6 +182,7 @@
         startChat() {
           this.isChatStarted = true
           if (this.heroSection) this.heroSection.style.display = 'none'
+          if (this.headerTop) this.headerTop.style.display = 'none'
           if (this.chatContainer) this.chatContainer.style.display = 'block'
         }
         constructor() {
@@ -196,6 +200,7 @@
 
         initializeElements() {
           this.heroSection = document.getElementById('heroSection')
+          this.headerTop = document.getElementById('headerTop')
           this.chatContainer = document.getElementById('chatContainer')
           this.messagesContainer = document.getElementById('messages')
           this.messageInput = document.getElementById('messageInput')
@@ -450,14 +455,68 @@
         }
 
         formatMessage(content) {
-          return content
+          // Basic markdown formatting with proper HTML rendering
+          let formatted = content
+            // Bold text
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            // Italic text
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            // Inline code
             .replace(
               /`(.*?)`/g,
-              '<code style="background: #333; padding: 2px 4px; border-radius: 3px;">$1</code>',
+              '<code style="background: #333; padding: 2px 4px; border-radius: 3px; color: #FFBE1A;">$1</code>',
             )
+            // Headers
+            .replace(
+              /^### (.*$)/gm,
+              '<h3 style="color: #FFBE1A; font-size: 16px; font-weight: 600; margin: 12px 0 8px 0;">$1</h3>',
+            )
+            .replace(
+              /^## (.*$)/gm,
+              '<h2 style="color: #FFBE1A; font-size: 18px; font-weight: 600; margin: 16px 0 8px 0;">$1</h2>',
+            )
+            .replace(
+              /^# (.*$)/gm,
+              '<h1 style="color: #FFBE1A; font-size: 20px; font-weight: 600; margin: 16px 0 8px 0;">$1</h1>',
+            )
+            // Line breaks
             .replace(/\n/g, '<br>')
+            // Lists (basic implementation)
+            .replace(
+              /^\* (.*$)/gm,
+              '<li style="margin-left: 20px; margin-bottom: 4px;">$1</li>',
+            )
+            .replace(
+              /^- (.*$)/gm,
+              '<li style="margin-left: 20px; margin-bottom: 4px;">$1</li>',
+            )
+            // Links - [text](url) format
+            .replace(
+              /\[([^\]]+)\]\(([^)]+)\)/g,
+              "<a href='$2' target='_blank' style='color: #FFBE1A; text-decoration: underline; cursor: pointer;'>$1</a>",
+            )
+            // Auto-detect URLs (http/https)
+            .replace(
+              /(https?:\/\/[^\s<>"{}|\\^`[\]]+)/g,
+              "<a href='$1' target='_blank' style='color: #FFBE1A; text-decoration: underline; cursor: pointer;'>$1</a>",
+            )
+
+          // Wrap consecutive <li> elements in <ul>
+          formatted = formatted.replace(
+            /(<li[^>]*>.*?<\/li>)(?:\s*<li[^>]*>.*?<\/li>)*/gs,
+            function (match) {
+              return (
+                '<ul style="margin: 8px 0; padding-left: 0; list-style: none;">' +
+                match.replace(
+                  /<li/g,
+                  '<li style="margin-left: 20px; margin-bottom: 4px; position: relative;',
+                ) +
+                '</ul>'
+              )
+            },
+          )
+
+          return formatted
         }
 
         showLoading() {
@@ -520,7 +579,10 @@
         }
 
         scrollToBottom() {
-          this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight
+          this.messagesContainer.scrollTo({
+            top: this.messagesContainer.scrollHeight,
+            behavior: 'smooth',
+          })
         }
       }
 
