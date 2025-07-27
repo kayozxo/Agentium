@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>AI Agent Hub</title>
+    <link
+      rel="stylesheet"
+      href="styles.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg
+              width="150"
+              height="150"
+              viewBox="0 0 150 150"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle
+                cx="75"
+                cy="75"
+                r="6"
+                fill="#121212"
+              />
+              <ellipse
+                cx="75"
+                cy="75"
+                rx="40"
+                ry="20"
+                stroke="#121212"
+                stroke-width="2"
+                fill="none"
+              />
+              <ellipse
+                cx="75"
+                cy="75"
+                rx="20"
+                ry="40"
+                stroke="#121212"
+                stroke-width="2"
+                fill="none"
+                transform="rotate(45 75 75)"
+              />
+              <ellipse
+                cx="75"
+                cy="75"
+                rx="20"
+                ry="40"
+                stroke="#121212"
+                stroke-width="2"
+                fill="none"
+                transform="rotate(-45 75 75)"
+              />
+            </svg>
+          </div>
+          Agentium
+        </div>
+      </header>
+
+      <main class="main-content">
+        <div
+          class="hero-section"
+          id="heroSection"
+        >
+          <h1 class="hero-title">Chat Smarter, Not Harder</h1>
+          <p class="hero-subtitle">
+            Agentium gives you access to task-specific agents all in one chat
+            interface.
+          </p>
+        </div>
+
+        <div
+          class="chat-container"
+          id="chatContainer"
+        >
+          <div class="chat-header">
+            <div
+              class="chat-header-icon"
+              id="chatHeaderIcon"
+            >
+              💬
+            </div>
+            <div class="chat-header-text">
+              <h3 id="agentTitle">General Chat</h3>
+              <p id="agentDescription">Ask me anything!</p>
+            </div>
+          </div>
+
+          <div
+            class="messages-container"
+            id="messages"
+          >
+            <div class="welcome-message">
+              <h4>Welcome to AI Agent Hub!</h4>
+              <p>Select an agent and start your conversation.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="input-section">
+          <div class="input-controls">
+            <div class="agent-dropdown">
+              <select
+                class="agent-select"
+                id="agentSelect"
+              >
+                <option value="general">💬 General</option>
+                <option value="web">🌐 Web Search</option>
+                <option value="youtube">🎥 YouTube</option>
+                <option value="articles">📰 Articles</option>
+                <option value="linkedin">💼 LinkedIn</option>
+                <option value="finance">💰 Finance</option>
+              </select>
+              <span class="dropdown-arrow">▼</span>
+            </div>
+
+            <div class="file-upload-container">
+              <button
+                class="file-upload-btn"
+                id="imageUploadBtn"
+              >
+                📷 Image
+                <input
+                  type="file"
+                  class="file-input"
+                  id="imageInput"
+                  accept="image/*"
+                  multiple
+                />
+              </button>
+              <button
+                class="file-upload-btn"
+                id="fileUploadBtn"
+              >
+                📁 File
+                <input
+                  type="file"
+                  class="file-input"
+                  id="fileInput"
+                  multiple
+                />
+              </button>
+            </div>
+          </div>
+
+          <div
+            class="uploaded-files"
+            id="uploadedFiles"
+          ></div>
+
+          <div class="input-wrapper">
+            <textarea
+              class="chat-input"
+              id="messageInput"
+              placeholder="Ask Agentium to create a LinkedIn post about..."
+              rows="1"
+            ></textarea>
+            <button
+              class="send-button"
+              id="sendButton"
+              disabled
+            >
+              ↑
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      class ChatApp {
+        startChat() {
+          this.isChatStarted = true
+          if (this.heroSection) this.heroSection.style.display = 'none'
+          if (this.chatContainer) this.chatContainer.style.display = 'block'
+        }
+        constructor() {
+          this.currentAgent = 'general'
+          this.apiUrl = 'http://localhost:8000'
+          this.messages = []
+          this.isLoading = false
+          this.uploadedFiles = []
+          this.isChatStarted = false
+
+          this.initializeElements()
+          this.bindEvents()
+          this.updatePlaceholder()
+        }
+
+        initializeElements() {
+          this.heroSection = document.getElementById('heroSection')
+          this.chatContainer = document.getElementById('chatContainer')
+          this.messagesContainer = document.getElementById('messages')
+          this.messageInput = document.getElementById('messageInput')
+          this.sendButton = document.getElementById('sendButton')
+          this.agentTitle = document.getElementById('agentTitle')
+          this.agentDescription = document.getElementById('agentDescription')
+          this.chatHeaderIcon = document.getElementById('chatHeaderIcon')
+          this.agentSelect = document.getElementById('agentSelect')
+          this.startChatBtn = document.getElementById('startChatBtn')
+          this.imageInput = document.getElementById('imageInput')
+          this.fileInput = document.getElementById('fileInput')
+          this.imageUploadBtn = document.getElementById('imageUploadBtn')
+          this.fileUploadBtn = document.getElementById('fileUploadBtn')
+          this.uploadedFilesContainer = document.getElementById('uploadedFiles')
+        }
+
+        bindEvents() {
+          // Start chat
+
+          // Agent selection
+          this.agentSelect.addEventListener('change', (e) => {
+            this.selectAgent(e.target.value)
+          })
+
+          // File uploads
+          this.imageUploadBtn.addEventListener('click', () => {
+            this.imageInput.click()
+          })
+
+          this.fileUploadBtn.addEventListener('click', () => {
+            this.fileInput.click()
+          })
+
+          this.imageInput.addEventListener('change', (e) => {
+            this.handleFileUpload(e.target.files, 'image')
+          })
+
+          this.fileInput.addEventListener('change', (e) => {
+            this.handleFileUpload(e.target.files, 'file')
+          })
+
+          // Send message
+          this.sendButton.addEventListener('click', () => this.sendMessage())
+
+          this.messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              console.log('Enter pressed, sending message')
+              e.preventDefault()
+              this.sendMessage()
+            }
+          })
+
+          // Auto-resize textarea and enable/disable send button
+          this.messageInput.addEventListener('input', () => {
+            this.autoResizeTextarea()
+            this.sendButton.disabled =
+              !this.messageInput.value.trim() && this.uploadedFiles.length === 0
+          })
+        }
+
+        selectAgent(agentType) {
+          this.currentAgent = agentType
+          const agentInfo = this.getAgentInfo(agentType)
+          this.agentTitle.textContent = agentInfo.title
+          this.agentDescription.textContent = agentInfo.description
+          this.chatHeaderIcon.textContent = agentInfo.icon
+          this.updatePlaceholder()
+
+          if (this.isChatStarted) {
+            this.clearMessages()
+          }
+        }
+
+        updatePlaceholder() {
+          const placeholders = {
+            general: 'Ask me anything...',
+            web: 'Search the web...',
+            youtube: 'Find YouTube videos about...',
+            articles: 'Research articles on...',
+            linkedin: 'Find LinkedIn insights about...',
+            finance: 'Get financial data for...',
+          }
+          this.messageInput.placeholder =
+            placeholders[this.currentAgent] || 'Type your message...'
+        }
+
+        getAgentInfo(agentType) {
+          const agentInfoMap = {
+            general: {
+              title: 'General Chat',
+              description: 'Ask me anything!',
+              icon: '💬',
+            },
+            web: {
+              title: 'Web Agent',
+              description: 'Search and browse the web',
+              icon: '🌐',
+            },
+            youtube: {
+              title: 'YouTube Agent',
+              description: 'Find YouTube content',
+              icon: '🎥',
+            },
+            articles: {
+              title: 'Articles Agent',
+              description: 'Research articles',
+              icon: '📰',
+            },
+            linkedin: {
+              title: 'LinkedIn Agent',
+              description: 'Professional insights',
+              icon: '💼',
+            },
+            finance: {
+              title: 'Finance Agent',
+              description: 'Financial analysis',
+              icon: '💰',
+            },
+          }
+          return agentInfoMap[agentType] || agentInfoMap.general
+        }
+
+        handleFileUpload(files, type) {
+          Array.from(files).forEach((file) => {
+            const fileObj = {
+              id: Date.now() + Math.random(),
+              file: file,
+              type: type,
+              name: file.name,
+            }
+            this.uploadedFiles.push(fileObj)
+            this.renderUploadedFiles()
+          })
+          this.sendButton.disabled =
+            !this.messageInput.value.trim() && this.uploadedFiles.length === 0
+        }
+
+        renderUploadedFiles() {
+          this.uploadedFilesContainer.innerHTML = ''
+          this.uploadedFiles.forEach((fileObj) => {
+            const chip = document.createElement('div')
+            chip.className = 'file-chip'
+            chip.innerHTML = `
+                        <span>${fileObj.type === 'image' ? '📷' : '📁'} ${
+              fileObj.name
+            }</span>
+                        <span class="remove-file" data-id="${
+                          fileObj.id
+                        }">×</span>
+                    `
+
+            chip.querySelector('.remove-file').addEventListener('click', () => {
+              this.removeFile(fileObj.id)
+            })
+
+            this.uploadedFilesContainer.appendChild(chip)
+          })
+        }
+
+        removeFile(fileId) {
+          this.uploadedFiles = this.uploadedFiles.filter((f) => f.id !== fileId)
+          this.renderUploadedFiles()
+          this.sendButton.disabled =
+            !this.messageInput.value.trim() && this.uploadedFiles.length === 0
+        }
+
+        autoResizeTextarea() {
+          this.messageInput.style.height = 'auto'
+          this.messageInput.style.height =
+            Math.min(this.messageInput.scrollHeight, 120) + 'px'
+        }
+
+        async sendMessage() {
+          const message = this.messageInput.value.trim()
+          if (this.isLoading) return
+          if (!message && this.uploadedFiles.length === 0) return
+
+          if (!this.isChatStarted) {
+            this.startChat()
+          }
+
+          // Add user message
+          let displayMessage = message
+          if (this.uploadedFiles.length > 0) {
+            const fileList = this.uploadedFiles.map((f) => f.name).join(', ')
+            displayMessage = `${message}\n📎 Files: ${fileList}`
+          }
+          this.addMessage(displayMessage || '📎 Files uploaded', 'user')
+
+          // Clear input
+          this.messageInput.value = ''
+          this.uploadedFiles = []
+          this.renderUploadedFiles()
+          this.sendButton.disabled = true
+          this.autoResizeTextarea()
+
+          // Show loading
+          this.showLoading()
+
+          try {
+            // For now, we'll just send the text query
+            // In a real implementation, you'd handle file uploads differently
+            const response = await fetch(`${this.apiUrl}/agent/ask`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                agent: this.currentAgent,
+                query: message || 'Files uploaded',
+              }),
+            })
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`)
+            }
+
+            const data = await response.json()
+            this.hideLoading()
+            this.addMessage(data.response, 'bot')
+          } catch (error) {
+            this.hideLoading()
+            this.showError(`Failed to get response: ${error.message}`)
+          }
+        }
+
+        addMessage(content, sender) {
+          const messageDiv = document.createElement('div')
+          messageDiv.className = `message ${sender}`
+
+          const avatar = document.createElement('div')
+          avatar.className = 'message-avatar'
+          avatar.textContent = sender === 'user' ? 'U' : 'AI'
+
+          const messageContent = document.createElement('div')
+          messageContent.className = 'message-content'
+
+          const formattedContent = this.formatMessage(content)
+          messageContent.innerHTML = formattedContent
+
+          messageDiv.appendChild(avatar)
+          messageDiv.appendChild(messageContent)
+
+          const welcomeMessage =
+            this.messagesContainer.querySelector('.welcome-message')
+          if (welcomeMessage) {
+            welcomeMessage.remove()
+          }
+
+          this.messagesContainer.appendChild(messageDiv)
+          this.scrollToBottom()
+        }
+
+        formatMessage(content) {
+          return content
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(
+              /`(.*?)`/g,
+              '<code style="background: #333; padding: 2px 4px; border-radius: 3px;">$1</code>',
+            )
+            .replace(/\n/g, '<br>')
+        }
+
+        showLoading() {
+          this.isLoading = true
+          const loadingDiv = document.createElement('div')
+          loadingDiv.className = 'message bot'
+          loadingDiv.id = 'loading-message'
+
+          const avatar = document.createElement('div')
+          avatar.className = 'message-avatar'
+          avatar.textContent = 'AI'
+
+          const loadingContent = document.createElement('div')
+          loadingContent.className = 'message-content'
+          loadingContent.innerHTML = `
+                    <div class="loading">
+                        <div class="loading-dot"></div>
+                        <div class="loading-dot"></div>
+                        <div class="loading-dot"></div>
+                    </div>
+                `
+
+          loadingDiv.appendChild(avatar)
+          loadingDiv.appendChild(loadingContent)
+          this.messagesContainer.appendChild(loadingDiv)
+          this.scrollToBottom()
+        }
+
+        hideLoading() {
+          this.isLoading = false
+          const loadingMessage = document.getElementById('loading-message')
+          if (loadingMessage) {
+            loadingMessage.remove()
+          }
+        }
+
+        showError(message) {
+          const errorDiv = document.createElement('div')
+          errorDiv.className = 'error-message'
+          errorDiv.textContent = message
+          this.messagesContainer.appendChild(errorDiv)
+          this.scrollToBottom()
+
+          setTimeout(() => {
+            errorDiv.remove()
+          }, 5000)
+        }
+
+        clearMessages() {
+          this.messagesContainer.innerHTML = `
+                    <div class="welcome-message">
+                        <h4>Switched to ${
+                          this.getAgentInfo(this.currentAgent).title
+                        }</h4>
+                        <p>${
+                          this.getAgentInfo(this.currentAgent).description
+                        }</p>
+                    </div>
+                `
+        }
+
+        scrollToBottom() {
+          this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        new ChatApp()
+      })
+    </script>
+  </body>
+</html>
