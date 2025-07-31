@@ -24,7 +24,7 @@ finance_agent = Agent(
 youtube_agent = Agent(
     model=Groq(id="llama-3.3-70b-versatile"),
     description="YouTube Data Agent",
-    tools=[DuckDuckGoTools()],  # Replace with YouTube tool if available
+    tools=[DuckDuckGoTools()],
     instructions="Gather and summarize YouTube video data for queries.",
     markdown=True,
     show_tool_calls=True,

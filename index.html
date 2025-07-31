@@ -16,6 +16,7 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
   </head>
   <body>
     <div class="container">
@@ -550,7 +551,18 @@
             this.startChat()
           }
 
-          // Add user message
+          // Add user message to messages array
+          const userMessage = {
+            role: 'user',
+            content: message || 'Files uploaded',
+            timestamp: new Date().toISOString(),
+          }
+          this.messages.push(userMessage)
+
+          // Limit conversation history before sending
+          this.limitConversationHistory()
+
+          // Add user message to UI
           let displayMessage = message
           if (this.uploadedFiles.length > 0) {
             const fileList = this.uploadedFiles.map((f) => f.name).join(', ')
@@ -569,8 +581,6 @@
           this.showLoading()
 
           try {
-            // For now, we'll just send the text query
-            // In a real implementation, you'd handle file uploads differently
             const response = await fetch(`${this.apiUrl}/agent/ask`, {
               method: 'POST',
               headers: {
@@ -579,6 +589,7 @@
               body: JSON.stringify({
                 agent: this.currentAgent,
                 query: message || 'Files uploaded',
+                messages: this.messages, // Send conversation history
               }),
             })
 
@@ -587,11 +598,38 @@
             }
 
             const data = await response.json()
+
+            // Add AI response to messages array
+            const aiMessage = {
+              role: 'assistant',
+              content: data.response,
+              timestamp: new Date().toISOString(),
+            }
+            this.messages.push(aiMessage)
+
             this.hideLoading()
             this.addMessage(data.response, 'bot')
           } catch (error) {
             this.hideLoading()
             this.showError(`Failed to get response: ${error.message}`)
+
+            // Remove the user message from history if API call failed
+            this.messages.pop()
+          }
+        }
+
+        // Add this method if you don't have it
+        limitConversationHistory() {
+          const maxMessages = 20
+          if (this.messages.length > maxMessages) {
+            this.messages = this.messages.slice(-maxMessages)
+          }
+        }
+
+        limitConversationHistory() {
+          const maxMessages = 20
+          if (this.messages.length > maxMessages) {
+            this.messages = this.messages.slice(-maxMessages)
           }
         }
 
@@ -623,68 +661,52 @@
         }
 
         formatMessage(content) {
-          // Basic markdown formatting with proper HTML rendering
-          let formatted = content
-            // Bold text
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            // Italic text
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            // Inline code
-            .replace(
-              /`(.*?)`/g,
-              '<code style="background: #333; padding: 2px 4px; border-radius: 3px; color: #FFBE1A;">$1</code>',
-            )
-            // Headers
-            .replace(
-              /^### (.*$)/gm,
-              '<h3 style="color: #FFBE1A; font-size: 16px; font-weight: 600; margin: 12px 0 8px 0;">$1</h3>',
-            )
-            .replace(
-              /^## (.*$)/gm,
-              '<h2 style="color: #FFBE1A; font-size: 18px; font-weight: 600; margin: 16px 0 8px 0;">$1</h2>',
-            )
-            .replace(
-              /^# (.*$)/gm,
-              '<h1 style="color: #FFBE1A; font-size: 20px; font-weight: 600; margin: 16px 0 8px 0;">$1</h1>',
-            )
-            // Line breaks
-            .replace(/\n/g, '<br>')
-            // Lists (basic implementation)
-            .replace(
-              /^\* (.*$)/gm,
-              '<li style="margin-left: 20px; margin-bottom: 4px;">$1</li>',
-            )
-            .replace(
-              /^- (.*$)/gm,
-              '<li style="margin-left: 20px; margin-bottom: 4px;">$1</li>',
-            )
-            // Links - [text](url) format
-            .replace(
-              /\[([^\]]+)\]\(([^)]+)\)/g,
-              "<a href='$2' target='_blank' style='color: #FFBE1A; text-decoration: underline; cursor: pointer;'>$1</a>",
-            )
-            // Auto-detect URLs (http/https)
-            .replace(
-              /(https?:\/\/[^\s<>"{}|\\^`[\]]+)/g,
-              "<a href='$1' target='_blank' style='color: #FFBE1A; text-decoration: underline; cursor: pointer;'>$1</a>",
-            )
+          const renderer = new marked.Renderer()
 
-          // Wrap consecutive <li> elements in <ul>
-          formatted = formatted.replace(
-            /(<li[^>]*>.*?<\/li>)(?:\s*<li[^>]*>.*?<\/li>)*/gs,
-            function (match) {
-              return (
-                '<ul style="margin: 8px 0; padding-left: 0; list-style: none;">' +
-                match.replace(
-                  /<li/g,
-                  '<li style="margin-left: 20px; margin-bottom: 4px; position: relative;',
-                ) +
-                '</ul>'
-              )
-            },
-          )
+          renderer.list = function (body, ordered) {
+            const type = ordered ? 'ol' : 'ul'
+            return `<${type} style="margin: 8px 0; padding-left: 20px; list-style-position: outside;">${body}</${type}>`
+          }
 
-          return formatted
+          renderer.listitem = function (text) {
+            return `<li style="margin-bottom: 4px;">${text}</li>`
+          }
+
+          renderer.link = function (href, title, text) {
+            return `<a href="${href}" target="_blank" style="color: #ffbe1a; text-decoration: underline; cursor: pointer;"${
+              title ? ` title="${title}"` : ''
+            }>${text}</a>`
+          }
+          renderer.heading = function (text, level) {
+            const colors = {
+              1: '#ffbe1a', // H1 color
+              2: '#ffbe1a', // H2 color
+              3: '#ffbe1a', // H3 color
+              4: '#ffbe1a', // H4 color
+              5: '#ffbe1a', // H5 color
+              6: '#ffbe1a', // H6 color
+            }
+
+            const fontSize = {
+              1: '24px',
+              2: '20px',
+              3: '18px',
+              4: '16px',
+              5: '14px',
+              6: '12px',
+            }
+
+            return `<h${level} style="color: ${
+              colors[level] || '#ffbe1a'
+            }; font-size: ${
+              fontSize[level]
+            }; font-weight: 600; margin: 16px 0 8px 0;">${text}</h${level}>`
+          }
+          return marked.parse(content, {
+            renderer: renderer,
+            breaks: true,
+            gfm: true,
+          })
         }
 
         showLoading() {
@@ -734,6 +756,7 @@
         }
 
         clearMessages() {
+          this.messages = []
           this.messagesContainer.innerHTML = `
             <div class="welcome-message">
               <h4>Switched to ${this.getAgentInfo(this.currentAgent).title}</h4>
