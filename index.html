@@ -6,8 +6,24 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0"
     />
+    <meta
+      name="color-scheme"
+      content="dark"
+    />
     <title>Agentium</title>
-
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link
       rel="stylesheet"
       href="styles.css"
@@ -19,6 +35,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
   </head>
   <body>
+<div class="bg-layers" aria-hidden="true"></div>
     <div class="container">
       <header
         class="header"
@@ -80,8 +97,7 @@
         >
           <h1 class="hero-title">Chat Smarter, Not Harder</h1>
           <p class="hero-subtitle">
-            Agentium gives you access to task-specific agents all in one chat
-            interface.
+            Access to task-specific agents all in one chat interface.
           </p>
         </div>
 
@@ -105,6 +121,7 @@
           <div
             class="messages-container"
             id="messages"
+            aria-live="polite"
           >
             <div class="welcome-message">
               <h4>Welcome to AI Agent Hub!</h4>
@@ -181,10 +198,14 @@
               </div>
             </div>
 
-            <div class="file-upload-container">
+            <div
+              class="file-upload-container"
+              id="fileUploadContainer"
+            >
               <button
                 class="file-upload-btn"
                 id="imageUploadBtn"
+                title="Upload images (General chat only)"
               >
                 <i class="bi bi-image"></i> Image
                 <input
@@ -198,6 +219,7 @@
               <button
                 class="file-upload-btn"
                 id="fileUploadBtn"
+                title="Upload files (General chat only)"
               >
                 <i class="bi bi-file-earmark"></i> File
                 <input
@@ -233,6 +255,7 @@
         </div>
       </main>
     </div>
+  </div>
 
     <script>
       class CustomDropdown {
@@ -348,11 +371,13 @@
           this.isLoading = false
           this.uploadedFiles = []
           this.isChatStarted = false
+          this.hasImages = false // Track if there are uploaded images
 
           this.initializeElements()
           this.initializeDropdown()
           this.bindEvents()
           this.updatePlaceholder()
+          this.updateFileUploadVisibility()
         }
 
         initializeElements() {
@@ -370,6 +395,10 @@
           this.imageUploadBtn = document.getElementById('imageUploadBtn')
           this.fileUploadBtn = document.getElementById('fileUploadBtn')
           this.uploadedFilesContainer = document.getElementById('uploadedFiles')
+          this.fileUploadContainer = document.getElementById(
+            'fileUploadContainer',
+          )
+          this.inputSectionEl = document.querySelector('.input-section');
         }
 
         initializeDropdown() {
@@ -385,11 +414,23 @@
         bindEvents() {
           // File uploads
           this.imageUploadBtn.addEventListener('click', () => {
-            this.imageInput.click()
+            if (this.currentAgent === 'general') {
+              this.imageInput.click()
+            } else {
+              this.showNotification(
+                'Image upload is only available in General chat mode',
+              )
+            }
           })
 
           this.fileUploadBtn.addEventListener('click', () => {
-            this.fileInput.click()
+            if (this.currentAgent === 'general') {
+              this.fileInput.click()
+            } else {
+              this.showNotification(
+                'File upload is only available in General chat mode',
+              )
+            }
           })
 
           this.imageInput.addEventListener('change', (e) => {
@@ -418,14 +459,94 @@
           })
         }
 
+        updateFileUploadVisibility() {
+          const isGeneral = this.currentAgent === 'general'
+
+          // Show/hide file upload container
+          this.fileUploadContainer.style.display = isGeneral ? 'flex' : 'none'
+
+          // Update button states and tooltips
+          if (!isGeneral) {
+            this.imageUploadBtn.disabled = true
+            this.fileUploadBtn.disabled = true
+            this.imageUploadBtn.title =
+              'Image upload is only available in General chat'
+            this.fileUploadBtn.title =
+              'File upload is only available in General chat'
+          } else {
+            this.imageUploadBtn.disabled = false
+            this.fileUploadBtn.disabled = false
+            this.imageUploadBtn.title = 'Upload images'
+            this.fileUploadBtn.title = 'Upload files'
+          }
+        }
+
+        showNotification(message) {
+          // Create notification element
+          const notification = document.createElement('div')
+          notification.className = 'notification'
+          notification.textContent = message
+          notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ff6b6b;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 14px;
+            max-width: 300px;
+            animation: slideIn 0.3s ease-out;
+          `
+
+          // Add animation styles
+          const style = document.createElement('style')
+          style.textContent = `
+            @keyframes slideIn {
+              from { transform: translateX(100%); opacity: 0; }
+              to { transform: translateX(0); opacity: 1; }
+            }
+          `
+          document.head.appendChild(style)
+
+          document.body.appendChild(notification)
+
+          // Remove notification after 3 seconds
+          setTimeout(() => {
+            notification.style.animation = 'slideIn 0.3s ease-out reverse'
+            setTimeout(() => {
+              if (notification.parentNode) {
+                notification.parentNode.removeChild(notification)
+              }
+            }, 300)
+          }, 3000)
+        }
+
         startChat() {
           this.isChatStarted = true
+
           if (this.heroSection) this.heroSection.style.display = 'none'
           if (this.headerTop) this.headerTop.style.display = 'none'
           if (this.chatContainer) this.chatContainer.style.display = 'block'
         }
 
         selectAgent(agentType) {
+          // If switching away from general and there are files, clear them and warn user
+          if (
+            this.currentAgent === 'general' &&
+            agentType !== 'general' &&
+            this.uploadedFiles.length > 0
+          ) {
+            this.showNotification(
+              'Files cleared when switching from General chat',
+            )
+            this.uploadedFiles = []
+            this.renderUploadedFiles()
+            this.hasImages = false
+          }
+
           this.currentAgent = agentType
           const agentInfo = this.getAgentInfo(agentType)
           this.agentTitle.textContent = agentInfo.title
@@ -438,6 +559,8 @@
           this.chatHeaderIcon.appendChild(icon)
 
           this.updatePlaceholder()
+          this.updateFileUploadVisibility()
+
           if (this.isChatStarted) {
             this.clearMessages()
           }
@@ -493,6 +616,13 @@
         }
 
         handleFileUpload(files, type) {
+          if (this.currentAgent !== 'general') {
+            this.showNotification(
+              'File upload is only available in General chat mode',
+            )
+            return
+          }
+
           Array.from(files).forEach((file) => {
             const fileObj = {
               id: Date.now() + Math.random(),
@@ -501,14 +631,22 @@
               name: file.name,
             }
             this.uploadedFiles.push(fileObj)
-            this.renderUploadedFiles()
+
+            // Track if we have images for vision model switching
+            if (type === 'image') {
+              this.hasImages = true
+            }
           })
+
+          this.renderUploadedFiles()
+          this.updateHasFilesClass();
           this.sendButton.disabled =
             !this.messageInput.value.trim() && this.uploadedFiles.length === 0
         }
 
         renderUploadedFiles() {
           this.uploadedFilesContainer.innerHTML = ''
+
           this.uploadedFiles.forEach((fileObj) => {
             const chip = document.createElement('div')
             chip.className = 'file-chip'
@@ -531,9 +669,21 @@
 
         removeFile(fileId) {
           this.uploadedFiles = this.uploadedFiles.filter((f) => f.id !== fileId)
+
+          // Check if we still have images after removal
+          this.hasImages = this.uploadedFiles.some((f) => f.type === 'image')
+
           this.renderUploadedFiles()
+          this.updateHasFilesClass();
           this.sendButton.disabled =
             !this.messageInput.value.trim() && this.uploadedFiles.length === 0
+        }
+
+        updateHasFilesClass() {
+          const has = this.uploadedFiles.length > 0;
+          this.inputSectionEl ||= document.querySelector('.input-section');
+          if (!this.inputSectionEl) return;
+          this.inputSectionEl.classList.toggle('has-files', has);
         }
 
         autoResizeTextarea() {
@@ -551,11 +701,37 @@
             this.startChat()
           }
 
+          // Prepare files for upload if any
+          const filesToSend = []
+          if (this.uploadedFiles.length > 0) {
+            for (const fileObj of this.uploadedFiles) {
+              if (fileObj.type === 'image') {
+                // Convert image to base64 for vision model
+                const base64 = await this.fileToBase64(fileObj.file)
+                filesToSend.push({
+                  type: 'image',
+                  name: fileObj.name,
+                  data: base64,
+                  mimeType: fileObj.file.type,
+                })
+              } else {
+                // Handle other file types as needed
+                filesToSend.push({
+                  type: 'file',
+                  name: fileObj.name,
+                  size: fileObj.file.size,
+                  mimeType: fileObj.file.type,
+                })
+              }
+            }
+          }
+
           // Add user message to messages array
           const userMessage = {
             role: 'user',
             content: message || 'Files uploaded',
             timestamp: new Date().toISOString(),
+            files: filesToSend,
           }
           this.messages.push(userMessage)
 
@@ -572,8 +748,11 @@
 
           // Clear input
           this.messageInput.value = ''
+          const hasImagesBeforeClear = this.hasImages
           this.uploadedFiles = []
+          this.hasImages = false
           this.renderUploadedFiles()
+          this.updateHasFilesClass();
           this.sendButton.disabled = true
           this.autoResizeTextarea()
 
@@ -581,16 +760,21 @@
           this.showLoading()
 
           try {
+            const requestBody = {
+              agent: this.currentAgent,
+              query: message || 'Files uploaded',
+              messages: this.messages,
+              useVisionModel:
+                hasImagesBeforeClear && this.currentAgent === 'general', // Flag for vision model
+              files: filesToSend,
+            }
+
             const response = await fetch(`${this.apiUrl}/agent/ask`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({
-                agent: this.currentAgent,
-                query: message || 'Files uploaded',
-                messages: this.messages, // Send conversation history
-              }),
+              body: JSON.stringify(requestBody),
             })
 
             if (!response.ok) {
@@ -618,12 +802,18 @@
           }
         }
 
-        // Add this method if you don't have it
-        limitConversationHistory() {
-          const maxMessages = 20
-          if (this.messages.length > maxMessages) {
-            this.messages = this.messages.slice(-maxMessages)
-          }
+        // Helper function to convert file to base64
+        fileToBase64(file) {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => {
+              // Remove the data URL prefix to get just the base64 string
+              const base64 = reader.result.split(',')[1]
+              resolve(base64)
+            }
+            reader.onerror = reject
+            reader.readAsDataURL(file)
+          })
         }
 
         limitConversationHistory() {
@@ -634,31 +824,70 @@
         }
 
         addMessage(content, sender) {
-          const messageDiv = document.createElement('div')
-          messageDiv.className = `message ${sender}`
+const messageDiv = document.createElement('div');
+messageDiv.className = `message ${sender}`;
 
-          const avatar = document.createElement('div')
-          avatar.className = 'message-avatar'
-          avatar.textContent = sender === 'user' ? 'U' : 'AI'
+const avatar = document.createElement('div');
+avatar.className = 'message-avatar';
+avatar.textContent = sender === 'user' ? 'U' : 'AI';
 
-          const messageContent = document.createElement('div')
-          messageContent.className = 'message-content'
+const messageContent = document.createElement('div');
+messageContent.className = 'message-content';
 
-          const formattedContent = this.formatMessage(content)
-          messageContent.innerHTML = formattedContent
+// Detect "Files: ..." pattern and split text from files
+let textPart = content;
+let filesPart = null;
+const filesMatch = content.match(/(?:^|\n)📎\sFiles:\s(.+)$/i);
+if (filesMatch) {
+textPart = content.replace(filesMatch[0], '').trim();
+filesPart = filesMatch[1]
+.split(',')
+.map(s => s.trim())
+.filter(Boolean);
+}
 
-          messageDiv.appendChild(avatar)
-          messageDiv.appendChild(messageContent)
+// Main text (markdown-rendered)
+const formatted = this.formatMessage(textPart || '');
+messageContent.innerHTML = formatted || '';
 
-          const welcomeMessage =
-            this.messagesContainer.querySelector('.welcome-message')
-          if (welcomeMessage) {
-            welcomeMessage.remove()
-          }
+// If files present, render as chips below
+if (filesPart && filesPart.length) {
+const filesRow = document.createElement('div');
+filesRow.className = 'message-files';
+filesPart.forEach(name => {
+const chip = document.createElement('span');
+chip.className = 'message-file-chip';
+chip.innerHTML = `<i class="bi bi-paperclip"></i><span title="${name}">${name}</span>`;
+filesRow.appendChild(chip);
+});
+messageContent.appendChild(filesRow);
+}
 
-          this.messagesContainer.appendChild(messageDiv)
-          this.scrollToBottom()
-        }
+messageDiv.appendChild(avatar);
+messageDiv.appendChild(messageContent);
+
+const welcomeMessage = this.messagesContainer.querySelector('.welcome-message');
+if (welcomeMessage) welcomeMessage.remove();
+
+this.messagesContainer.appendChild(messageDiv);
+
+// Optional: add copy button to code blocks (if you added earlier snippet)
+messageContent.querySelectorAll('pre').forEach((pre) => {
+const btn = document.createElement('button');
+btn.className = 'copy-btn';
+btn.textContent = 'Copy';
+btn.addEventListener('click', () => {
+const code = pre.innerText;
+navigator.clipboard.writeText(code).then(() => {
+btn.textContent = 'Copied';
+setTimeout(() => (btn.textContent = 'Copy'), 1200);
+});
+});
+pre.appendChild(btn);
+});
+
+this.scrollToBottom();
+}
 
         formatMessage(content) {
           const renderer = new marked.Renderer()
