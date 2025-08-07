@@ -26,7 +26,7 @@
     />
     <link
       rel="stylesheet"
-      href="styles.css"
+      href="/static/styles.css"
     />
     <link
       rel="stylesheet"
@@ -824,70 +824,70 @@
         }
 
         addMessage(content, sender) {
-const messageDiv = document.createElement('div');
-messageDiv.className = `message ${sender}`;
+          const messageDiv = document.createElement('div');
+          messageDiv.className = `message ${sender}`;
 
-const avatar = document.createElement('div');
-avatar.className = 'message-avatar';
-avatar.textContent = sender === 'user' ? 'U' : 'AI';
+          const avatar = document.createElement('div');
+          avatar.className = 'message-avatar';
+          avatar.textContent = sender === 'user' ? 'U' : 'AI';
 
-const messageContent = document.createElement('div');
-messageContent.className = 'message-content';
+          const messageContent = document.createElement('div');
+          messageContent.className = 'message-content';
 
-// Detect "Files: ..." pattern and split text from files
-let textPart = content;
-let filesPart = null;
-const filesMatch = content.match(/(?:^|\n)📎\sFiles:\s(.+)$/i);
-if (filesMatch) {
-textPart = content.replace(filesMatch[0], '').trim();
-filesPart = filesMatch[1]
-.split(',')
-.map(s => s.trim())
-.filter(Boolean);
-}
+          // Detect "Files: ..." pattern and split text from files
+          let textPart = content;
+          let filesPart = null;
+          const filesMatch = content.match(/(?:^|\n)📎\sFiles:\s(.+)$/i);
+          if (filesMatch) {
+          textPart = content.replace(filesMatch[0], '').trim();
+          filesPart = filesMatch[1]
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean);
+          }
 
-// Main text (markdown-rendered)
-const formatted = this.formatMessage(textPart || '');
-messageContent.innerHTML = formatted || '';
+          // Main text (markdown-rendered)
+          const formatted = this.formatMessage(textPart || '');
+          messageContent.innerHTML = formatted || '';
 
-// If files present, render as chips below
-if (filesPart && filesPart.length) {
-const filesRow = document.createElement('div');
-filesRow.className = 'message-files';
-filesPart.forEach(name => {
-const chip = document.createElement('span');
-chip.className = 'message-file-chip';
-chip.innerHTML = `<i class="bi bi-paperclip"></i><span title="${name}">${name}</span>`;
-filesRow.appendChild(chip);
-});
-messageContent.appendChild(filesRow);
-}
+          // If files present, render as chips below
+          if (filesPart && filesPart.length) {
+          const filesRow = document.createElement('div');
+          filesRow.className = 'message-files';
+          filesPart.forEach(name => {
+          const chip = document.createElement('span');
+          chip.className = 'message-file-chip';
+          chip.innerHTML = `<i class="bi bi-paperclip"></i><span title="${name}">${name}</span>`;
+          filesRow.appendChild(chip);
+          });
+          messageContent.appendChild(filesRow);
+          }
 
-messageDiv.appendChild(avatar);
-messageDiv.appendChild(messageContent);
+          messageDiv.appendChild(avatar);
+          messageDiv.appendChild(messageContent);
 
-const welcomeMessage = this.messagesContainer.querySelector('.welcome-message');
-if (welcomeMessage) welcomeMessage.remove();
+          const welcomeMessage = this.messagesContainer.querySelector('.welcome-message');
+          if (welcomeMessage) welcomeMessage.remove();
 
-this.messagesContainer.appendChild(messageDiv);
+          this.messagesContainer.appendChild(messageDiv);
 
-// Optional: add copy button to code blocks (if you added earlier snippet)
-messageContent.querySelectorAll('pre').forEach((pre) => {
-const btn = document.createElement('button');
-btn.className = 'copy-btn';
-btn.textContent = 'Copy';
-btn.addEventListener('click', () => {
-const code = pre.innerText;
-navigator.clipboard.writeText(code).then(() => {
-btn.textContent = 'Copied';
-setTimeout(() => (btn.textContent = 'Copy'), 1200);
-});
-});
-pre.appendChild(btn);
-});
+          // Optional: add copy button to code blocks (if you added earlier snippet)
+          messageContent.querySelectorAll('pre').forEach((pre) => {
+          const btn = document.createElement('button');
+          btn.className = 'copy-btn';
+          btn.textContent = 'Copy';
+          btn.addEventListener('click', () => {
+          const code = pre.innerText;
+          navigator.clipboard.writeText(code).then(() => {
+          btn.textContent = 'Copied';
+          setTimeout(() => (btn.textContent = 'Copy'), 1200);
+          });
+          });
+          pre.appendChild(btn);
+          });
 
-this.scrollToBottom();
-}
+          this.scrollToBottom();
+        }
 
         formatMessage(content) {
           const renderer = new marked.Renderer()

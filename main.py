@@ -61,6 +61,16 @@ class ChatResponse(BaseModel):
     agent_used: str
     model_used: str
 
+from fastapi.staticfiles import StaticFiles
+
+app.mount("/static", StaticFiles(directory="."), name="static")
+from fastapi.responses import HTMLResponse
+
+@app.get("/", response_class=HTMLResponse)
+async def read_root():
+    with open("index.html") as f:
+        return f.read()
+
 @app.post("/agent/ask", response_model=ChatResponse)
 async def ask_agent(request: ChatRequest):
     try:
